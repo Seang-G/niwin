@@ -2,8 +2,8 @@
   "name": "niwin",
   "private": true,
   "version": "0.0.0",
-  "description": "Niwin desktop app",
-  "author": "Niwin Team",
+  "description": "niwin desktop app",
+  "author": "SeangG",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -45,7 +45,12 @@
           "target": "nsis",
           "arch": ["x64"]
         }
-      ]
+      ],
+      "artifactName": "${productName}-${version}-setup.${ext}"
+    },
+    "nsis": {
+      "installerIcon": "buildResources/installerIcon.ico",
+      "uninstallerIcon": "buildResources/installerIcon.ico"
     },
     "linux": {
       "target": ["AppImage"],
