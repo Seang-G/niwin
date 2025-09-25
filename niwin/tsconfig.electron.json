@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "target": "ES2021",
+    "lib": ["ES2021"],
+    "moduleResolution": "NodeNext",
+    "outDir": "./dist-electron",
+    "rootDir": "./electron",
+    "noEmit": false,
+    "isolatedModules": false,
+    "allowImportingTsExtensions": false,
+    "verbatimModuleSyntax": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "types": ["node", "electron"],
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.electron.tsbuildinfo"
+  },
+  "include": ["electron/**/*.ts", "electron/**/*.cts", "electron/**/*.mts"],
+  "exclude": ["dist", "dist-electron", "node_modules"]
+}
