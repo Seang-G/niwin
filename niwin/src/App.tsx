@@ -1,11 +1,12 @@
 import './App.css'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import ClockDisplay from './components/ClockDisplay'
 
 function App() {
   const [menuOpen, setMenuOpen] = useState(false)
-  const [mainHover, setMainHover] = useState(false)
   const [panelHover, setPanelHover] = useState(false)
+  const [appHover, setAppHover] = useState(false)
+  const backdropVideoRef = useRef<HTMLVideoElement | null>(null)
 
   const handleClose = useCallback(() => {
     window.electronAPI?.closeWindow()
@@ -59,13 +60,37 @@ function App() {
     }
   }, [])
 
+  useEffect(() => {
+    const video = backdropVideoRef.current
+    if (video) {
+      video.playbackRate = 1
+    }
+  }, [])
+
+  useEffect(() => {
+    const handlePointerOut = (event: PointerEvent) => {
+      if (event.pointerType === 'mouse' && event.relatedTarget === null) {
+        setAppHover(false)
+      }
+    }
+
+    window.addEventListener('pointerout', handlePointerOut)
+
+    return () => {
+      window.removeEventListener('pointerout', handlePointerOut)
+    }
+  }, [])
+
   return (
-    <div
-      className="app-root"
-      data-main-hover={mainHover ? 'true' : 'false'}
-      data-panel-hover={panelHover ? 'true' : 'false'}
-      data-menu-open={menuOpen ? 'true' : 'false'}
-    >
+    <div className="hover-shell">
+      <div
+        className="app-root"
+        data-panel-hover={panelHover ? 'true' : 'false'}
+        data-app-hover={appHover ? 'true' : 'false'}
+        data-menu-open={menuOpen ? 'true' : 'false'}
+        onPointerEnter={() => setAppHover(true)}
+        onPointerLeave={() => setAppHover(false)}
+      >
       <div className="chrome-layer" data-area="chrome">
         <div
           className={`top-panel ${menuOpen ? 'is-open' : ''}`}
@@ -74,7 +99,9 @@ function App() {
           onMouseLeave={() => setPanelHover(false)}
         >
           <button className="top-panel-button drag-button" type="button" aria-label="Drag window">
-            ⇕
+            <span className="material-symbols-rounded" aria-hidden="true">
+              arrows_output
+            </span>
           </button>
           <button
             className="top-panel-button close-button"
@@ -98,17 +125,24 @@ function App() {
           </button>
         </div>
       </div>
-      <div
-        className="app-shell"
-        data-area="main"
-        onMouseEnter={() => setMainHover(true)}
-        onMouseLeave={() => setMainHover(false)}
-      >
-        <div className="app-backdrop" aria-hidden="true" />
+      <div className="app-shell" data-area="main">
+        <div className="app-backdrop" aria-hidden="true">
+          <video
+            className="backdrop-video"
+            src="media/stars.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            ref={backdropVideoRef}
+          />
+          <div className="backdrop-overlay" />
+        </div>
         <div className="app-content">
           <ClockDisplay />
         </div>
       </div>
+    </div>
     </div>
   )
 }

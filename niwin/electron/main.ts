@@ -23,7 +23,6 @@ const TOP_PANEL_WIDTH = 240
 const TOP_PANEL_OVERHANG = 40
 const TOP_PANEL_DROP = 140
 const TOP_PANEL_RIGHT_OFFSET = 120
-const RESIZE_MARGIN = 24
 
 const updateIgnoreState = (shouldIgnore: boolean) => {
   if (!mainWindow || lastIgnoreState === shouldIgnore) {
@@ -46,10 +45,8 @@ const evaluateCursorPosition = () => {
   const cursor = screen.getCursorScreenPoint()
   const bounds = mainWindow.getBounds()
 
-  const leftEdge = bounds.x
   const rightEdge = bounds.x + bounds.width
   const topEdge = bounds.y
-  const bottomEdge = bounds.y + bounds.height
   const menuZoneLeft = rightEdge - MENU_ZONE_WIDTH - MENU_ZONE_PADDING
   const menuZoneRight = rightEdge + MENU_ZONE_PADDING
   const menuZoneTop = topEdge - MENU_ZONE_PADDING
@@ -59,13 +56,6 @@ const evaluateCursorPosition = () => {
   const panelZoneLeft = panelZoneRight - TOP_PANEL_WIDTH
   const panelZoneTop = topEdge - TOP_PANEL_OVERHANG
   const panelZoneBottom = topEdge + TOP_PANEL_DROP
-
-  const isNearLeftEdge = cursor.x >= leftEdge && cursor.x <= leftEdge + RESIZE_MARGIN
-  const isNearRightEdge = cursor.x >= rightEdge - RESIZE_MARGIN && cursor.x <= rightEdge
-  const isNearTopEdge = cursor.y >= topEdge && cursor.y <= topEdge + RESIZE_MARGIN
-  const isNearBottomEdge = cursor.y >= bottomEdge - RESIZE_MARGIN && cursor.y <= bottomEdge
-
-  const isNearEdge = isNearLeftEdge || isNearRightEdge || isNearTopEdge || isNearBottomEdge
 
   const isInMenuZone =
     cursor.x >= menuZoneLeft &&
@@ -79,7 +69,7 @@ const evaluateCursorPosition = () => {
     cursor.y >= panelZoneTop &&
     cursor.y <= panelZoneBottom
 
-  updateIgnoreState(!(isInMenuZone || isInPanelZone || isNearEdge))
+  updateIgnoreState(!(isInMenuZone || isInPanelZone))
 }
 
 const startPassThroughMonitor = () => {
@@ -107,7 +97,9 @@ const createWindow = async () => {
   mainWindow = new BrowserWindow({
     width: windowWidth,
     height: windowHeight,
-    resizable: true,
+    minWidth: 200,
+    minHeight: 130,
+    resizable: false,
     frame: false,
     transparent: true,
     hasShadow: false,
