@@ -14,12 +14,16 @@ app.disableHardwareAcceleration()
 let mainWindow: BrowserWindow | null = null
 let lastIgnoreState: boolean | null = null
 let passThroughInterval: NodeJS.Timeout | null = null
+let windowIsMaximized = false
+
+const MIN_WINDOW_WIDTH = 200
+const MIN_WINDOW_HEIGHT = 130
 
 const MENU_ZONE_WIDTH = 200
 const MENU_ZONE_HEIGHT = 160
 const MENU_ZONE_PADDING = 16
 
-const TOP_PANEL_WIDTH = 240
+const TOP_PANEL_WIDTH = 420
 const TOP_PANEL_OVERHANG = 40
 const TOP_PANEL_DROP = 140
 const TOP_PANEL_RIGHT_OFFSET = 120
@@ -97,8 +101,8 @@ const createWindow = async () => {
   mainWindow = new BrowserWindow({
     width: windowWidth,
     height: windowHeight,
-    minWidth: 200,
-    minHeight: 130,
+    minWidth: MIN_WINDOW_WIDTH,
+    minHeight: MIN_WINDOW_HEIGHT,
     resizable: false,
     frame: false,
     transparent: true,
@@ -118,6 +122,12 @@ const createWindow = async () => {
     lastIgnoreState = null
     stopPassThroughMonitor()
   })
+  mainWindow.on('maximize', () => {
+    windowIsMaximized = true
+  })
+  mainWindow.on('unmaximize', () => {
+    windowIsMaximized = false
+  })
 
   if (VITE_DEV_SERVER_URL) {
     await mainWindow.loadURL(VITE_DEV_SERVER_URL)
@@ -129,6 +139,25 @@ const createWindow = async () => {
 
 app.whenReady().then(() => {
   ipcMain.handle('ping', () => 'pong')
+  ipcMain.handle('window:get-state', () => {
+    const isMaximized = mainWindow?.isMaximized?.() ?? windowIsMaximized
+    return {
+      isMaximized,
+    }
+  })
+  ipcMain.handle('window:resize-toggle', () => {
+    if (!mainWindow) return windowIsMaximized
+
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize()
+      windowIsMaximized = false
+    } else {
+      mainWindow.maximize()
+      windowIsMaximized = true
+    }
+
+    return windowIsMaximized
+  })
   ipcMain.handle('window:close', () => {
     mainWindow?.close()
   })
@@ -140,6 +169,43 @@ app.whenReady().then(() => {
     updateIgnoreState(shouldIgnore)
   })
   ipcMain.handle('window:get-pass-through-enabled', () => passThroughEnabled)
+  ipcMain.handle('window:get-bounds', () => {
+    if (!mainWindow) return null
+    const { x, y, width, height } = mainWindow.getBounds()
+    return { x, y, width, height }
+  })
+  ipcMain.handle(
+    'window:set-bounds',
+    (
+      _event,
+      bounds: { width: number; height: number; x?: number; y?: number },
+    ) => {
+      if (!mainWindow) return null
+
+      const current = mainWindow.getBounds()
+      const nextWidth = Math.max(
+        MIN_WINDOW_WIDTH,
+        Number.isFinite(bounds.width) ? Math.round(bounds.width) : current.width,
+      )
+      const nextHeight = Math.max(
+        MIN_WINDOW_HEIGHT,
+        Number.isFinite(bounds.height) ? Math.round(bounds.height) : current.height,
+      )
+      const nextX =
+        typeof bounds.x === 'number' && Number.isFinite(bounds.x)
+          ? Math.round(bounds.x)
+          : current.x
+      const nextY =
+        typeof bounds.y === 'number' && Number.isFinite(bounds.y)
+          ? Math.round(bounds.y)
+          : current.y
+
+      mainWindow.setBounds({ x: nextX, y: nextY, width: nextWidth, height: nextHeight })
+      windowIsMaximized = false
+
+      return { x: nextX, y: nextY, width: nextWidth, height: nextHeight }
+    },
+  )
 
   createWindow()
 
