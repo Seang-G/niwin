@@ -6,4 +6,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setIgnoreMouseEvents: (shouldIgnore: boolean) =>
     ipcRenderer.invoke('window:set-ignore-mouse-events', shouldIgnore),
   getPassThroughEnabled: () => ipcRenderer.invoke('window:get-pass-through-enabled'),
+  toggleResize: () => ipcRenderer.invoke('window:resize-toggle'),
+  getWindowState: () => ipcRenderer.invoke('window:get-state'),
+  getWindowBounds: () => ipcRenderer.invoke('window:get-bounds'),
+  setWindowBounds: (bounds: { width: number; height: number; x?: number; y?: number }) =>
+    ipcRenderer.invoke('window:set-bounds', bounds),
+  onControlsVisibilityChange: (callback: (hidden: boolean) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, hidden: boolean) => {
+      callback(hidden)
+    }
+    ipcRenderer.on('tray:controls-visibility', handler)
+    return () => {
+      ipcRenderer.removeListener('tray:controls-visibility', handler)
+    }
+  },
 })

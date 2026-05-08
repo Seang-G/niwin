@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 
 const TICK_INTERVAL = 1000
 
@@ -10,9 +11,23 @@ const formatDateFallback = (date: Date) => {
   return `${year}.${month}.${day}. ${weekday}`
 }
 
-const ClockDisplay = () => {
+type ClockDisplayProps = {
+  trackTitle?: string
+}
+
+type TrackTitleStyle = CSSProperties & {
+  '--scroll-distance'?: string
+  '--scroll-duration'?: string
+}
+
+const ClockDisplay = ({ trackTitle }: ClockDisplayProps) => {
+  const hasTitle = Boolean(trackTitle && trackTitle.trim().length > 0)
   const [now, setNow] = useState(() => new Date())
   const [secondsPosition, setSecondsPosition] = useState<'tight' | 'wide'>('tight')
+  const [titleOverflowing, setTitleOverflowing] = useState(false)
+  const [titleScrollDistance, setTitleScrollDistance] = useState(0)
+  const titleContainerRef = useRef<HTMLParagraphElement | null>(null)
+  const titleContentRef = useRef<HTMLSpanElement | null>(null)
 
   const dateFormatter = useMemo(() => {
     try {
@@ -56,6 +71,55 @@ const ClockDisplay = () => {
   const minutes = now.getMinutes().toString().padStart(2, '0')
   const seconds = now.getSeconds().toString().padStart(2, '0')
   const dateLabel = dateFormatter(now)
+  const updateTitleOverflow = useCallback(() => {
+    const container = titleContainerRef.current
+    const content = titleContentRef.current
+    if (!container || !content || !hasTitle) {
+      setTitleOverflowing(false)
+      setTitleScrollDistance(0)
+      return
+    }
+    const overflow = Math.max(content.scrollWidth - container.clientWidth, 0)
+    setTitleOverflowing(overflow > 0)
+    setTitleScrollDistance(overflow)
+  }, [hasTitle])
+
+  useEffect(() => {
+    updateTitleOverflow()
+  }, [trackTitle, updateTitleOverflow])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const handleResize = () => {
+      updateTitleOverflow()
+    }
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [updateTitleOverflow])
+
+  useEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return undefined
+    const observer = new ResizeObserver(() => {
+      updateTitleOverflow()
+    })
+    const container = titleContainerRef.current
+    if (container) {
+      observer.observe(container)
+    }
+    return () => {
+      observer.disconnect()
+    }
+  }, [updateTitleOverflow])
+
+  const trackTitleStyle: TrackTitleStyle | undefined =
+    hasTitle && titleOverflowing
+      ? {
+          '--scroll-distance': `${titleScrollDistance}px`,
+          '--scroll-duration': `${Math.max(6, 6 + titleScrollDistance / 40)}s`,
+        }
+      : undefined
 
   return (
     <div className="clock-container" role="group" aria-label="현재 시계 정보" data-seconds-position={secondsPosition}>
@@ -73,6 +137,19 @@ const ClockDisplay = () => {
       <div className="clock-meta">
         <p className="clock-date" aria-label="현재 날짜">
           {dateLabel}
+        </p>
+        <p
+          className="clock-track-title"
+          title={hasTitle ? trackTitle : undefined}
+          data-overflow={titleOverflowing ? 'true' : 'false'}
+          data-visible={hasTitle ? 'true' : 'false'}
+          ref={titleContainerRef}
+          style={trackTitleStyle}
+          aria-label={hasTitle ? `현재 재생 중: ${trackTitle}` : undefined}
+        >
+          <span className="clock-track-title__content" ref={titleContentRef}>
+            {hasTitle ? trackTitle : '\u00a0'}
+          </span>
         </p>
       </div>
     </div>
