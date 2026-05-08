@@ -16,6 +16,7 @@
     "dev:electron": "concurrently \"npm run dev\" \"npm run electron:dev\"",
     "dist": "npm run build && npm run build:electron && electron-builder",
     "lint": "eslint .",
+    "test:e2e": "playwright test",
     "preview": "vite preview"
   },
   "build": {
@@ -31,19 +32,30 @@
       "dist-electron/**/*",
       "!**/*.map"
     ],
+    "extraResources": [
+      {
+        "from": "buildResources",
+        "to": "buildResources"
+      }
+    ],
     "asar": true,
     "extraMetadata": {
       "main": "dist-electron/main.js"
     },
     "mac": {
       "category": "public.app-category.utilities",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "artifactName": "${productName}-${version}-setup.${ext}"
@@ -53,7 +65,9 @@
       "uninstallerIcon": "buildResources/installerIcon.ico"
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "category": "Utility"
     }
   },
@@ -64,6 +78,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@playwright/test": "^1.59.1",
     "@types/node": "^24.5.2",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",

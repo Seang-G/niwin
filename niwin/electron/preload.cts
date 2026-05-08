@@ -11,4 +11,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getWindowBounds: () => ipcRenderer.invoke('window:get-bounds'),
   setWindowBounds: (bounds: { width: number; height: number; x?: number; y?: number }) =>
     ipcRenderer.invoke('window:set-bounds', bounds),
+  onControlsVisibilityChange: (callback: (hidden: boolean) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, hidden: boolean) => {
+      callback(hidden)
+    }
+    ipcRenderer.on('tray:controls-visibility', handler)
+    return () => {
+      ipcRenderer.removeListener('tray:controls-visibility', handler)
+    }
+  },
 })
